@@ -1,19 +1,41 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { ConnectButton, useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
+import { Aftermath } from 'aftermath-ts-sdk';
+
+import { CoinTypes } from '@constants/coins';
 
 const ScreenSwap: React.FC = () => {
   const account = useCurrentAccount();
   console.log(account);
-  const { data: balanceSui } = useSuiClientQuery('getBalance', {
+  const { data: balanceCoin } = useSuiClientQuery('getBalance', {
     owner: account?.address || '',
-    coinType: '0x2::sui::SUI',
+    coinType: CoinTypes.sui,
   });
-  console.log(balanceSui);
-  const { data: balanceUsdc } = useSuiClientQuery('getBalance', {
-    owner: account?.address || '',
-    coinType: '0x168da5bf1f48dafc111b0a488fa454aca95e0b5e::usdc::USDC',
+  console.log(balanceCoin);
+  const { data: metadataCoin } = useSuiClientQuery('getCoinMetadata', {
+    coinType: CoinTypes.cetus,
   });
-  console.log(balanceUsdc);
+  console.log(metadataCoin);
+
+  const aftermath = useMemo(() => new Aftermath('MAINNET'), []);
+  useEffect(() => {
+    aftermath.init();
+    const router = aftermath.Router();
+    router
+      .getCompleteTradeRouteGivenAmountIn({
+        coinInType: CoinTypes.sui,
+        coinOutType: CoinTypes.cetus,
+        coinInAmount: BigInt(1 * Number('1e9')),
+      })
+      .then((route) => {
+        console.log(route);
+        console.log(Number(route.routes[0].coinIn.amount) / Number('1e9'));
+        console.log(Number(route.routes[0].coinOut.amount) / Number('1e9'));
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }, [aftermath]);
 
   return (
     <>
@@ -25,7 +47,11 @@ const ScreenSwap: React.FC = () => {
             </div>
           </>
         )}
-        {!!account && <></>}
+        {!!account && (
+          <>
+            <div className="mt-5"></div>
+          </>
+        )}
       </div>
     </>
   );

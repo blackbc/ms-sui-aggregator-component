@@ -1,9 +1,9 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
 
-import RouteConstants from '@/constants/route';
+import RouteConstants from '@constants/route';
 
-import ComponentLoading from '@/components/loading';
+import ComponentLoading from '@components/loading';
 
 const ScreenSwap = React.lazy(() => import('./swap'));
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
 import type { RouterCompleteTradeRoute, CoinPriceInfo } from 'aftermath-ts-sdk';
 
@@ -9,6 +9,7 @@ import ScreenSwapSource from './components/Source';
 import ScreenSwapSwap from './components/Swap';
 import ScreenSwapTarget from './components/Target';
 import ScreenSwapRouter from './components/Router';
+import ScreenSwapError from './components/Error';
 import ScreenSwapTrade from './components/Trade';
 
 const ScreenSwap: React.FC = () => {
@@ -131,7 +132,6 @@ const ScreenSwap: React.FC = () => {
           referrer: address,
         })
         .then((route) => {
-          console.log(route);
           setTradeRoute(route);
           setSourceCoinAmount(
             (
@@ -148,6 +148,13 @@ const ScreenSwap: React.FC = () => {
     },
     [aftermathSdk],
   );
+
+  const error = useMemo(() => {
+    if ((sourceCoinBalance?.coinObjectCount ?? 0) < Number(sourceCoinAmount)) {
+      return 'Invalid balance';
+    }
+    return '';
+  }, [sourceCoinBalance, sourceCoinAmount]);
 
   return (
     <>
@@ -212,7 +219,8 @@ const ScreenSwap: React.FC = () => {
               targetCoinMetadata={targetCoinMetadata}
               tradeRoute={tradeRoute}
             />
-            <ScreenSwapTrade account={account} />
+            <ScreenSwapError error={error} />
+            <ScreenSwapTrade account={account} disabled={!tradeRoute || !!error} />
           </div>
         </div>
       </div>

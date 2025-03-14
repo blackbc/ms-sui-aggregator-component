@@ -1,57 +1,77 @@
-import React, { useEffect, useMemo } from 'react';
-import { ConnectButton, useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
-import { Aftermath } from 'aftermath-ts-sdk';
+import React, { useEffect, useState } from 'react';
+import { ConnectModal, useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
 
-import { CoinTypes } from '@constants/coins';
+import useAftermathSdk from '@hooks/useAftermathSdk';
 
 const ScreenSwap: React.FC = () => {
+  const [sourceCoinType] = useState('0x2::sui::SUI');
+  const [targetCoinType] = useState(
+    '0x6864a6f921804860930db6ddbe2e16acdf8504495ea7481637a1c8b9a8fe54b::cetus::CETUS',
+    // '0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN',
+  );
+
   const account = useCurrentAccount();
   console.log(account);
-  const { data: balanceCoin } = useSuiClientQuery('getBalance', {
-    owner: account?.address || '',
-    coinType: CoinTypes.sui,
-  });
-  console.log(balanceCoin);
-  const { data: metadataCoin } = useSuiClientQuery('getCoinMetadata', {
-    coinType: CoinTypes.cetus,
-  });
-  console.log(metadataCoin);
 
-  const aftermath = useMemo(() => new Aftermath('MAINNET'), []);
+  const { data: balanceSourceCoin } = useSuiClientQuery('getBalance', {
+    owner: account?.address || '',
+    coinType: sourceCoinType,
+  });
+  console.log(balanceSourceCoin);
+  const { data: balanceTargetCoin } = useSuiClientQuery('getBalance', {
+    owner: account?.address || '',
+    coinType: targetCoinType,
+  });
+  console.log(balanceTargetCoin);
+
+  const { data: metadataSourceCoin } = useSuiClientQuery('getCoinMetadata', {
+    coinType: sourceCoinType,
+  });
+  console.log(metadataSourceCoin);
+  const { data: metadataTargetCoin } = useSuiClientQuery('getCoinMetadata', {
+    coinType: targetCoinType,
+  });
+  console.log(metadataTargetCoin);
+
+  const aftermathSdk = useAftermathSdk();
   useEffect(() => {
-    aftermath.init();
-    const router = aftermath.Router();
-    router
-      .getCompleteTradeRouteGivenAmountIn({
-        coinInType: CoinTypes.sui,
-        coinOutType: CoinTypes.cetus,
-        coinInAmount: BigInt(1 * Number('1e9')),
-      })
-      .then((route) => {
-        console.log(route);
-        console.log(Number(route.routes[0].coinIn.amount) / Number('1e9'));
-        console.log(Number(route.routes[0].coinOut.amount) / Number('1e9'));
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }, [aftermath]);
+    if (account?.address) {
+      const router = aftermathSdk.Router();
+      router
+        .getCompleteTradeRouteGivenAmountIn({
+          coinInType: sourceCoinType,
+          coinOutType: targetCoinType,
+          coinInAmount: BigInt(0.01 * Number('1e9')),
+          referrer: account.address,
+        })
+        .then((route) => {
+          console.log(route);
+          console.log(Number(route.routes[0].coinIn.amount) / Number('1e9'));
+          console.log(Number(route.routes[0].coinOut.amount) / Number('1e9'));
+          // router
+          //   .getTransactionForCompleteTradeRoute({
+          //     walletAddress: account.address,
+          //     completeRoute: route,
+          //     slippage: 0.1,
+          //   })
+          //   .then((tx) => {
+          //     console.log(tx);
+          //   })
+          //   .catch((error) => {
+          //     console.log(error);
+          //   });
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    }
+  }, [aftermathSdk, account, sourceCoinType, targetCoinType]);
 
   return (
     <>
+      {!account && <ConnectModal trigger={<></>} open={true} onOpenChange={() => {}} />}
       <div className="h-full">
-        {!account && (
-          <>
-            <div className="flex flex-row justify-center mt-5">
-              <ConnectButton />
-            </div>
-          </>
-        )}
-        {!!account && (
-          <>
-            <div className="mt-5"></div>
-          </>
-        )}
+        <div className="flex flex-row justify-center mt-5"></div>
       </div>
     </>
   );

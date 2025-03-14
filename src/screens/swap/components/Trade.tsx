@@ -7,8 +7,9 @@ import imgTrade from '@assets/images/trade.png';
 type ScreenSwapTradeProps = {
   account: WalletAccount | null;
   disabled: boolean;
+  onClick: () => void;
 };
-const ScreenSwapTrade: React.FC<ScreenSwapTradeProps> = ({ account, disabled }) => {
+const ScreenSwapTrade: React.FC<ScreenSwapTradeProps> = ({ account, disabled, onClick }) => {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
 
   return (
@@ -35,6 +36,7 @@ const ScreenSwapTrade: React.FC<ScreenSwapTradeProps> = ({ account, disabled }) 
             type="button"
             className="cursor-pointer text-black bg-white hover:bg-gray-200 active:bg-gray-400 disabled:bg-gray-600 disabled:cursor-default font-medium rounded-lg text-md px-5 py-2.5 w-full flex flex-row justify-center items-center mt-5"
             disabled={disabled}
+            onClick={() => onClick()}
           >
             <img src={imgTrade} className="w-4 h-4" alt="trade" />
             <span className="ml-1">Trade</span>

@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
+import {
+  useCurrentAccount,
+  useSuiClientQuery,
+  useSignAndExecuteTransaction,
+} from '@mysten/dapp-kit';
 import type { RouterCompleteTradeRoute, CoinPriceInfo } from 'aftermath-ts-sdk';
 
 import useAftermathSdk from '@hooks/useAftermathSdk';
@@ -68,15 +72,6 @@ const ScreenSwap: React.FC = () => {
 
   const [sourceCoinAmount, setSourceCoinAmount] = useState('0');
   const [targetCoinAmount, setTargetCoinAmount] = useState('0');
-
-  const onShouldSwap = useCallback(() => {
-    const [_targetCoinType, _sourceCoinType] = [sourceCoinType, targetCoinType];
-    setSourceCoinType(_sourceCoinType);
-    setTargetCoinType(_targetCoinType);
-    setSourceCoinAmount('0');
-    setTargetCoinAmount('0');
-    setTradeRoute(null);
-  }, [sourceCoinType, targetCoinType]);
 
   const [tradeRoute, setTradeRoute] = useState<RouterCompleteTradeRoute | null>(null);
   const getRouteIn = useCallback(
@@ -156,6 +151,47 @@ const ScreenSwap: React.FC = () => {
     return '';
   }, [sourceCoinBalance, sourceCoinAmount]);
 
+  const onShouldSwap = useCallback(() => {
+    const [_targetCoinType, _sourceCoinType] = [sourceCoinType, targetCoinType];
+    setSourceCoinType(_sourceCoinType);
+    setTargetCoinType(_targetCoinType);
+    setSourceCoinAmount('0');
+    setTargetCoinAmount('0');
+    setTradeRoute(null);
+  }, [sourceCoinType, targetCoinType]);
+
+  const [isTrading, setIsTrading] = useState(false);
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const onShouldTrade = useCallback(() => {
+    if (!account || !tradeRoute || error) {
+      return;
+    }
+
+    setIsTrading(true);
+    const router = aftermathSdk.Router();
+    router
+      .getTransactionForCompleteTradeRoute({
+        walletAddress: account.address,
+        completeRoute: tradeRoute,
+        slippage: 0.01,
+      })
+      .then((tx) => {
+        signAndExecuteTransaction({ transaction: tx })
+          .then(() => {
+            alert('Execute transaction successfully');
+            setIsTrading(false);
+          })
+          .catch(() => {
+            alert('Sign and execute transaction fail');
+            setIsTrading(false);
+          });
+      })
+      .catch(() => {
+        alert('Create transaction fail');
+        setIsTrading(false);
+      });
+  }, [aftermathSdk, account, tradeRoute, error, signAndExecuteTransaction]);
+
   return (
     <>
       <div className="h-full">
@@ -220,7 +256,11 @@ const ScreenSwap: React.FC = () => {
               tradeRoute={tradeRoute}
             />
             <ScreenSwapError error={error} />
-            <ScreenSwapTrade account={account} disabled={!tradeRoute || !!error} />
+            <ScreenSwapTrade
+              account={account}
+              disabled={!tradeRoute || !!error || isTrading}
+              onClick={onShouldTrade}
+            />
           </div>
         </div>
       </div>

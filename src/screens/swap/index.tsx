@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
+import type { RouterCompleteTradeRoute, CoinPriceInfo } from 'aftermath-ts-sdk';
 
 import useAftermathSdk from '@hooks/useAftermathSdk';
 
@@ -18,29 +19,53 @@ const ScreenSwap: React.FC = () => {
   );
 
   const account = useCurrentAccount();
-  console.log(account);
 
-  const { data: balanceSourceCoin } = useSuiClientQuery('getBalance', {
+  const { data: sourceCoinBalance } = useSuiClientQuery('getBalance', {
     owner: account?.address || '',
     coinType: sourceCoinType,
   });
-  console.log(balanceSourceCoin);
-  const { data: balanceTargetCoin } = useSuiClientQuery('getBalance', {
+  const { data: targetCoinBalance } = useSuiClientQuery('getBalance', {
     owner: account?.address || '',
     coinType: targetCoinType,
   });
-  console.log(balanceTargetCoin);
-
-  const { data: metadataSourceCoin } = useSuiClientQuery('getCoinMetadata', {
+  const { data: sourceCoinMetadata } = useSuiClientQuery('getCoinMetadata', {
     coinType: sourceCoinType,
   });
-  console.log(metadataSourceCoin);
-  const { data: metadataTargetCoin } = useSuiClientQuery('getCoinMetadata', {
+  const { data: targetCoinMetadata } = useSuiClientQuery('getCoinMetadata', {
     coinType: targetCoinType,
   });
-  console.log(metadataTargetCoin);
+
+  const [sourceCoinPrice, setSourceCoinPrice] = useState<CoinPriceInfo | null>(null);
+  const [targetCoinPrice, setTargetCoinPrice] = useState<CoinPriceInfo | null>(null);
+  const [, setTradeRoute] = useState<RouterCompleteTradeRoute | null>(null);
 
   const aftermathSdk = useAftermathSdk();
+  useEffect(() => {
+    const prices = aftermathSdk.Prices();
+    prices
+      .getCoinPriceInfo({
+        coin: sourceCoinType,
+      })
+      .then((price) => {
+        setSourceCoinPrice(price);
+      })
+      .catch(() => {
+        setSourceCoinPrice(null);
+      });
+  }, [aftermathSdk, sourceCoinType]);
+  useEffect(() => {
+    const prices = aftermathSdk.Prices();
+    prices
+      .getCoinPriceInfo({
+        coin: targetCoinType,
+      })
+      .then((price) => {
+        setTargetCoinPrice(price);
+      })
+      .catch(() => {
+        setTargetCoinPrice(null);
+      });
+  }, [aftermathSdk, targetCoinType]);
   useEffect(() => {
     if (account?.address) {
       const router = aftermathSdk.Router();
@@ -52,24 +77,10 @@ const ScreenSwap: React.FC = () => {
           referrer: account.address,
         })
         .then((route) => {
-          console.log(route);
-          console.log(Number(route.routes[0].coinIn.amount) / Number('1e9'));
-          console.log(Number(route.routes[0].coinOut.amount) / Number('1e9'));
-          // router
-          //   .getTransactionForCompleteTradeRoute({
-          //     walletAddress: account.address,
-          //     completeRoute: route,
-          //     slippage: 0.1,
-          //   })
-          //   .then((tx) => {
-          //     console.log(tx);
-          //   })
-          //   .catch((error) => {
-          //     console.log(error);
-          //   });
+          setTradeRoute(route);
         })
-        .catch((error) => {
-          console.log(error);
+        .catch(() => {
+          setTradeRoute(null);
         });
     }
   }, [aftermathSdk, account, sourceCoinType, targetCoinType]);
@@ -80,9 +91,17 @@ const ScreenSwap: React.FC = () => {
         <div className="flex flex-row justify-center mt-5 p-5">
           <div className="w-xl p-5 border border-white rounded-lg">
             <ScreenSwapHeader />
-            <ScreenSwapSource />
+            <ScreenSwapSource
+              sourceCoinBalance={sourceCoinBalance}
+              sourceCoinMetadata={sourceCoinMetadata}
+              sourceCoinPrice={sourceCoinPrice}
+            />
             <ScreenSwapSwap />
-            <ScreenSwapTarget />
+            <ScreenSwapTarget
+              targetCoinBalance={targetCoinBalance}
+              targetCoinMetadata={targetCoinMetadata}
+              targetCoinPrice={targetCoinPrice}
+            />
             <ScreenSwapRouter />
             <ScreenSwapTrade account={account} />
           </div>

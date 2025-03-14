@@ -21,7 +21,7 @@ const ScreenSwapTrade: React.FC<ScreenSwapTradeProps> = ({ account }) => {
         <>
           <button
             type="button"
-            className="text-black bg-white hover:bg-gray-200 focus:bg-gray-400 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 w-full mt-5"
+            className="cursor-pointer text-black bg-white hover:bg-gray-200 active:bg-gray-400 font-medium rounded-lg text-sm px-5 py-2.5 w-full mt-5"
             onClick={() => setIsConnectModalOpen(true)}
           >
             Connect Wallet
@@ -32,7 +32,7 @@ const ScreenSwapTrade: React.FC<ScreenSwapTradeProps> = ({ account }) => {
         <>
           <button
             type="button"
-            className="text-black bg-white hover:bg-gray-200 focus:bg-gray-400 focus:outline-none font-medium rounded-lg text-md px-5 py-2.5 w-full flex flex-row justify-center items-center mt-5"
+            className="cursor-pointer text-black bg-white hover:bg-gray-200 active:bg-gray-400 font-medium rounded-lg text-md px-5 py-2.5 w-full flex flex-row justify-center items-center mt-5"
           >
             <img src={imgTrade} className="w-4 h-4" alt="trade" />
             <span className="ml-1">Trade</span>

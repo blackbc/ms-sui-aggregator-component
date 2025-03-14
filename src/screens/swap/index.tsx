@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
 import type { RouterCompleteTradeRoute, CoinPriceInfo } from 'aftermath-ts-sdk';
 
@@ -12,8 +12,8 @@ import ScreenSwapRouter from './components/Router';
 import ScreenSwapTrade from './components/Trade';
 
 const ScreenSwap: React.FC = () => {
-  const [sourceCoinType] = useState('0x2::sui::SUI');
-  const [targetCoinType] = useState(
+  const [sourceCoinType, setSourceCoinType] = useState('0x2::sui::SUI');
+  const [targetCoinType, setTargetCoinType] = useState(
     '0x6864a6f921804860930db6ddbe2e16acdf8504495ea7481637a1c8b9a8fe54b::cetus::CETUS',
     // '0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN',
   );
@@ -85,6 +85,17 @@ const ScreenSwap: React.FC = () => {
     }
   }, [aftermathSdk, account, sourceCoinType, targetCoinType]);
 
+  const [sourceCoinAmount, setSourceCoinAmount] = useState('0');
+  const [targetCoinAmount, setTargetCoinAmount] = useState('0');
+
+  const onShouldSwap = useCallback(() => {
+    const [_targetCoinType, _sourceCoinType] = [sourceCoinType, targetCoinType];
+    setSourceCoinType(_sourceCoinType);
+    setTargetCoinType(_targetCoinType);
+    setSourceCoinAmount('0');
+    setTargetCoinAmount('0');
+  }, [sourceCoinType, targetCoinType]);
+
   return (
     <>
       <div className="h-full">
@@ -95,12 +106,20 @@ const ScreenSwap: React.FC = () => {
               sourceCoinBalance={sourceCoinBalance}
               sourceCoinMetadata={sourceCoinMetadata}
               sourceCoinPrice={sourceCoinPrice}
+              sourceCoinAmount={sourceCoinAmount}
+              setSourceCoinAmount={(amount) => {
+                setSourceCoinAmount(amount);
+              }}
             />
-            <ScreenSwapSwap />
+            <ScreenSwapSwap onClick={onShouldSwap} />
             <ScreenSwapTarget
               targetCoinBalance={targetCoinBalance}
               targetCoinMetadata={targetCoinMetadata}
               targetCoinPrice={targetCoinPrice}
+              targetCoinAmount={targetCoinAmount}
+              setTargetCoinAmount={(amount) => {
+                setTargetCoinAmount(amount);
+              }}
             />
             <ScreenSwapRouter />
             <ScreenSwapTrade account={account} />

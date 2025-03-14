@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { ConnectModal, useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
+import { useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
 
 import useAftermathSdk from '@hooks/useAftermathSdk';
+
+import ScreenSwapHeader from './components/Header';
+import ScreenSwapSource from './components/Source';
+import ScreenSwapSwap from './components/Swap';
+import ScreenSwapTarget from './components/Target';
+import ScreenSwapRouter from './components/Router';
+import ScreenSwapTrade from './components/Trade';
 
 const ScreenSwap: React.FC = () => {
   const [sourceCoinType] = useState('0x2::sui::SUI');
@@ -69,9 +76,17 @@ const ScreenSwap: React.FC = () => {
 
   return (
     <>
-      {!account && <ConnectModal trigger={<></>} open={true} onOpenChange={() => {}} />}
       <div className="h-full">
-        <div className="flex flex-row justify-center mt-5"></div>
+        <div className="flex flex-row justify-center mt-5 p-5">
+          <div className="w-xl p-5 border border-white rounded-lg">
+            <ScreenSwapHeader />
+            <ScreenSwapSource />
+            <ScreenSwapSwap />
+            <ScreenSwapTarget />
+            <ScreenSwapRouter />
+            <ScreenSwapTrade account={account} />
+          </div>
+        </div>
       </div>
     </>
   );

@@ -12,6 +12,8 @@ import ScreenSwapRouter from './components/Router';
 import ScreenSwapTrade from './components/Trade';
 
 const ScreenSwap: React.FC = () => {
+  const aftermathSdk = useAftermathSdk();
+
   const [sourceCoinType, setSourceCoinType] = useState('0x2::sui::SUI');
   const [targetCoinType, setTargetCoinType] = useState(
     '0x6864a6f921804860930db6ddbe2e16acdf8504495ea7481637a1c8b9a8fe54b::cetus::CETUS',
@@ -19,7 +21,6 @@ const ScreenSwap: React.FC = () => {
   );
 
   const account = useCurrentAccount();
-
   const { data: sourceCoinBalance } = useSuiClientQuery('getBalance', {
     owner: account?.address || '',
     coinType: sourceCoinType,
@@ -37,9 +38,6 @@ const ScreenSwap: React.FC = () => {
 
   const [sourceCoinPrice, setSourceCoinPrice] = useState<CoinPriceInfo | null>(null);
   const [targetCoinPrice, setTargetCoinPrice] = useState<CoinPriceInfo | null>(null);
-  const [, setTradeRoute] = useState<RouterCompleteTradeRoute | null>(null);
-
-  const aftermathSdk = useAftermathSdk();
   useEffect(() => {
     const prices = aftermathSdk.Prices();
     prices
@@ -66,24 +64,6 @@ const ScreenSwap: React.FC = () => {
         setTargetCoinPrice(null);
       });
   }, [aftermathSdk, targetCoinType]);
-  useEffect(() => {
-    if (account?.address) {
-      const router = aftermathSdk.Router();
-      router
-        .getCompleteTradeRouteGivenAmountIn({
-          coinInType: sourceCoinType,
-          coinOutType: targetCoinType,
-          coinInAmount: BigInt(0.01 * Number('1e9')),
-          referrer: account.address,
-        })
-        .then((route) => {
-          setTradeRoute(route);
-        })
-        .catch(() => {
-          setTradeRoute(null);
-        });
-    }
-  }, [aftermathSdk, account, sourceCoinType, targetCoinType]);
 
   const [sourceCoinAmount, setSourceCoinAmount] = useState('0');
   const [targetCoinAmount, setTargetCoinAmount] = useState('0');
@@ -94,21 +74,114 @@ const ScreenSwap: React.FC = () => {
     setTargetCoinType(_targetCoinType);
     setSourceCoinAmount('0');
     setTargetCoinAmount('0');
+    setTradeRoute(null);
   }, [sourceCoinType, targetCoinType]);
+
+  const [tradeRoute, setTradeRoute] = useState<RouterCompleteTradeRoute | null>(null);
+  const getRouteIn = useCallback(
+    (
+      sourceCoinType: string,
+      sourceCoinDecimal: number,
+      targetCoinType: string,
+      targetCoinDecimal: number,
+      address: string,
+      amount: number,
+    ) => {
+      const router = aftermathSdk.Router();
+      router
+        .getCompleteTradeRouteGivenAmountIn({
+          coinInType: sourceCoinType,
+          coinOutType: targetCoinType,
+          coinInAmount: BigInt(amount * Number(`1e${sourceCoinDecimal}`)),
+          referrer: address,
+        })
+        .then((route) => {
+          setTradeRoute(route);
+          setTargetCoinAmount(
+            (
+              Number(
+                ((route?.coinOut.amount || BigInt(0)) * 100n) /
+                  BigInt(Number(`1e${targetCoinDecimal}`)),
+              ) / 100
+            ).toString(),
+          );
+        })
+        .catch(() => {
+          setTradeRoute(null);
+        });
+    },
+    [aftermathSdk],
+  );
+  const getRouteOut = useCallback(
+    (
+      sourceCoinType: string,
+      sourceCoinDecimal: number,
+      targetCoinType: string,
+      targetCoinDecimal: number,
+      address: string,
+      amount: number,
+    ) => {
+      const router = aftermathSdk.Router();
+      router
+        .getCompleteTradeRouteGivenAmountOut({
+          coinInType: sourceCoinType,
+          coinOutType: targetCoinType,
+          coinOutAmount: BigInt(amount * Number(`1e${targetCoinDecimal}`)),
+          slippage: 0.01,
+          referrer: address,
+        })
+        .then((route) => {
+          console.log(route);
+          setTradeRoute(route);
+          setSourceCoinAmount(
+            (
+              Number(
+                ((route?.coinIn.amount || BigInt(0)) * 100n) /
+                  BigInt(Number(`1e${sourceCoinDecimal}`)),
+              ) / 100
+            ).toString(),
+          );
+        })
+        .catch(() => {
+          setTradeRoute(null);
+        });
+    },
+    [aftermathSdk],
+  );
 
   return (
     <>
       <div className="h-full">
         <div className="flex flex-row justify-center mt-5 p-5">
           <div className="w-xl p-5 border border-white rounded-lg">
-            <ScreenSwapHeader />
+            <ScreenSwapHeader
+              sourceCoinAmount={sourceCoinAmount}
+              sourceCoinMetadata={sourceCoinMetadata}
+              sourceCoinPrice={sourceCoinPrice}
+              targetCoinMetadata={targetCoinMetadata}
+              targetCoinPrice={targetCoinPrice}
+              tradeRoute={tradeRoute}
+            />
             <ScreenSwapSource
               sourceCoinBalance={sourceCoinBalance}
               sourceCoinMetadata={sourceCoinMetadata}
               sourceCoinPrice={sourceCoinPrice}
               sourceCoinAmount={sourceCoinAmount}
               setSourceCoinAmount={(amount) => {
+                setTradeRoute(null);
                 setSourceCoinAmount(amount);
+                if (Number(amount)) {
+                  getRouteIn(
+                    sourceCoinType,
+                    sourceCoinMetadata?.decimals || 9,
+                    targetCoinType,
+                    targetCoinMetadata?.decimals || 9,
+                    account?.address || '',
+                    Number(amount),
+                  );
+                } else {
+                  setTargetCoinAmount('0');
+                }
               }}
             />
             <ScreenSwapSwap onClick={onShouldSwap} />
@@ -118,10 +191,27 @@ const ScreenSwap: React.FC = () => {
               targetCoinPrice={targetCoinPrice}
               targetCoinAmount={targetCoinAmount}
               setTargetCoinAmount={(amount) => {
+                setTradeRoute(null);
                 setTargetCoinAmount(amount);
+                if (Number(amount)) {
+                  getRouteOut(
+                    sourceCoinType,
+                    sourceCoinMetadata?.decimals || 9,
+                    targetCoinType,
+                    targetCoinMetadata?.decimals || 9,
+                    account?.address || '',
+                    Number(amount),
+                  );
+                } else {
+                  setSourceCoinAmount('0');
+                }
               }}
             />
-            <ScreenSwapRouter />
+            <ScreenSwapRouter
+              sourceCoinMetadata={sourceCoinMetadata}
+              targetCoinMetadata={targetCoinMetadata}
+              tradeRoute={tradeRoute}
+            />
             <ScreenSwapTrade account={account} />
           </div>
         </div>

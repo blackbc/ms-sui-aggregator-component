@@ -75,7 +75,11 @@ const ScreenSwapSource: React.FC<ScreenSwapSourceProps> = ({
                 className="flex-1 text-white text-xl font-semibold p-1 ml-5 text-right focus:outline-none"
                 value={amount}
                 onChange={(event) => {
-                  const newAmount = event.target.value;
+                  if (isNaN(Number(event.target.value))) {
+                    return;
+                  }
+                  const isLastDot = event.target.value[event.target.value.length - 1] === '.';
+                  const newAmount = `${Math.abs(Number(event.target.value)).toString()}${isLastDot ? '.' : ''}`;
                   setAmount(newAmount);
                   clearTimeout(debounceChangeAmount.current);
                   debounceChangeAmount.current = setTimeout(() => {
@@ -86,21 +90,25 @@ const ScreenSwapSource: React.FC<ScreenSwapSourceProps> = ({
             </div>
           </>
         )}
-        {!!sourceCoinBalance && !!sourceCoinPrice && (
-          <>
-            <div className="flex flex-row justify-between items-center mt-3">
-              <div className="flex flex-row items-center">
+        <div className="flex flex-row justify-between items-center mt-3">
+          <div className="flex flex-row items-center">
+            {!!sourceCoinBalance && (
+              <>
                 <img src={imgWallet} className="w-4 h-4" alt="source coin wallet icon" />
                 <p className="text-gray-500 text-sm font-medium ml-1">
                   {sourceCoinBalance.coinObjectCount}
                 </p>
-              </div>
+              </>
+            )}
+          </div>
+          {!!sourceCoinPrice && (
+            <>
               <p className="text-gray-500 text-sm font-medium">
                 ${amount ? sourceCoinPrice.price * Number(amount) : 0}
               </p>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </>
   );

@@ -7,6 +7,8 @@ import AppConstants from '@constants/app';
 import imgCoin from '@assets/images/coin.png';
 import imgWallet from '@assets/images/wallet.png';
 
+import { toMoneyFormat, fromMoneyFormat } from '@utilities/number';
+
 type ScreenSwapTargetProps = {
   targetCoinBalance: CoinBalance | undefined;
   targetCoinMetadata: CoinMetadata | null | undefined;
@@ -23,7 +25,7 @@ const ScreenSwapTarget: React.FC<ScreenSwapTargetProps> = ({
 }) => {
   const [amount, setAmount] = useState(targetCoinAmount);
   useEffect(() => {
-    setAmount(targetCoinAmount);
+    setAmount(toMoneyFormat(targetCoinAmount));
   }, [targetCoinAmount]);
 
   const debounceChangeAmount = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -38,7 +40,7 @@ const ScreenSwapTarget: React.FC<ScreenSwapTargetProps> = ({
               className="cursor-pointer text-orange-200 hover:text-orange-400 active:text-orange-600 text-xs font-medium"
               onClick={() => {
                 const newAmount = ((targetCoinBalance?.coinObjectCount ?? 0) / 2).toString();
-                setAmount(newAmount);
+                setAmount(toMoneyFormat(newAmount));
                 clearTimeout(debounceChangeAmount.current);
                 debounceChangeAmount.current = setTimeout(() => {
                   setTargetCoinAmount(newAmount);
@@ -51,7 +53,7 @@ const ScreenSwapTarget: React.FC<ScreenSwapTargetProps> = ({
               className="cursor-pointer text-orange-200 hover:text-orange-400 active:text-orange-600 text-xs font-medium ml-2"
               onClick={() => {
                 const newAmount = (targetCoinBalance?.coinObjectCount ?? 0).toString();
-                setAmount(newAmount);
+                setAmount(toMoneyFormat(newAmount));
                 clearTimeout(debounceChangeAmount.current);
                 debounceChangeAmount.current = setTimeout(() => {
                   setTargetCoinAmount(newAmount);
@@ -75,12 +77,13 @@ const ScreenSwapTarget: React.FC<ScreenSwapTargetProps> = ({
                 className="flex-1 text-white text-xl font-semibold p-1 ml-5 text-right focus:outline-none"
                 value={amount}
                 onChange={(event) => {
-                  if (isNaN(Number(event.target.value))) {
+                  const newValue = fromMoneyFormat(event.target.value);
+                  if (isNaN(Number(newValue))) {
                     return;
                   }
-                  const isLastDot = event.target.value[event.target.value.length - 1] === '.';
-                  const newAmount = `${Math.abs(Number(event.target.value)).toString()}${isLastDot ? '.' : ''}`;
-                  setAmount(newAmount);
+                  const isLastDot = newValue[newValue.length - 1] === '.';
+                  const newAmount = `${Math.abs(Number(newValue)).toString()}${isLastDot ? '.' : ''}`;
+                  setAmount(toMoneyFormat(newAmount));
                   clearTimeout(debounceChangeAmount.current);
                   debounceChangeAmount.current = setTimeout(() => {
                     setTargetCoinAmount(newAmount);
@@ -104,7 +107,12 @@ const ScreenSwapTarget: React.FC<ScreenSwapTargetProps> = ({
           {!!targetCoinPrice && (
             <>
               <p className="text-gray-500 text-sm font-medium">
-                ${amount ? targetCoinPrice.price * Number(amount) : 0}
+                $
+                {amount
+                  ? toMoneyFormat(
+                      (targetCoinPrice.price * Number(fromMoneyFormat(amount))).toString(),
+                    )
+                  : 0}
               </p>
             </>
           )}

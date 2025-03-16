@@ -30,6 +30,7 @@
       "@providers/*": ["src/providers/*"],
       "@hooks/*": ["src/hooks/*"],
       "@components/*": ["src/components/*"],
+      "@utilities/*": ["src/utilities/*"],
       "@/*": ["src/*"]
     }
   },
